@@ -1,0 +1,54 @@
+<resources>
+    <string name="app_name">Nova AI</string>
+    <string name="nova_tagline">Asisten Mengambang &amp; Pencarian Visual</string>
+    <string name="nav_home">Beranda</string>
+    <string name="nav_history">Riwayat</string>
+    <string name="nav_settings">Pengaturan</string>
+
+    <!-- Statuses -->
+    <string name="status_active">Aktif</string>
+    <string name="status_inactive">Nonaktif</string>
+    <string name="status_scanning">Memindai</string>
+    <string name="status_processing">Memproses</string>
+    <string name="status_completed">Selesai</string>
+    <string name="status_error">Gagal</string>
+    <string name="status_ready">Siap</string>
+    <string name="status_needs_permission">Perlu Izin</string>
+
+    <!-- Primary Actions -->
+    <string name="action_start_floating">Aktifkan Floating NOVA</string>
+    <string name="action_stop_floating">Hentikan Floating NOVA</string>
+    <string name="action_scan_area">Scan Area</string>
+    <string name="action_gallery">Galeri</string>
+    <string name="action_scan_now">Pindai</string>
+    <string name="action_cancel">Batal</string>
+    <string name="action_confirm_search">Cari &amp; Jawab</string>
+    <string name="action_rescan">Pindai Ulang</string>
+    <string name="action_copy">Salin</string>
+    <string name="action_copied">Tersalin</string>
+    <string name="action_retry">Ulangi</string>
+    <string name="action_expand">Perbesar</string>
+    <string name="action_collapse">Ringkas</string>
+    <string name="action_minimize">Minimalkan</string>
+    <string name="action_close">Tutup</string>
+    <string name="action_open_google_search">Buka Google Search</string>
+    <string name="action_full_explanation">Penjelasan Lengkap</string>
+    <string name="action_hide_explanation">Sembunyikan Detail</string>
+
+    <!-- Notifications -->
+    <string name="notif_channel_floating">Layanan Floating NOVA AI</string>
+    <string name="notif_channel_floating_desc">Menampilkan asisten mengambang NOVA AI di atas aplikasi lain.</string>
+    <string name="notif_channel_capture">Sesi Screen Capture NOVA AI</string>
+    <string name="notif_channel_capture_desc">Indikator aktif saat izin tangkapan layar Scan Area aktif.</string>
+    <string name="notif_floating_title">NOVA AI Aktif</string>
+    <string name="notif_floating_text">Ketuk bubble mengambang untuk Scan Area, Galeri, atau Panel Hub NOVA.</string>
+    <string name="notif_capture_title">Sesi Scan Area NOVA Siap</string>
+    <string name="notif_capture_text">MediaProjection aktif dengan izin Anda. Tidak ada tangkapan layar diam-diam.</string>
+    <string name="notif_action_stop">Hentikan</string>
+
+    <!-- Content Descriptions -->
+    <string name="cd_nova_logo">Logo NOVA AI</string>
+    <string name="cd_floating_bubble">Gelembung Asisten NOVA AI</string>
+    <string name="cd_hero_banner">Ilustrasi lensa optik NOVA AI</string>
+    <string name="cd_empty_history">Belum ada riwayat pemindaian</string>
+</resources>

@@ -1,0 +1,6 @@
+{
+  "name": "Nova AI",
+  "description": "Asisten AI mengambang Android dengan Scan Area, ML Kit OCR, Google Search, Galeri, dan Groq AI Answer Engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

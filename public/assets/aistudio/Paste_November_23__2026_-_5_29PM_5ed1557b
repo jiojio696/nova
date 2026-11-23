@@ -1,0 +1,576 @@
+Berikut PRD (Product Requirements Document) untuk **NOVA AI Android**. Saya susun sebagai dokumen acuan pengembangan agar developer atau AI coding agent bisa langsung memahami kebutuhan produk, arsitektur, fitur, batasan Android, dan kriteria keberhasilannya.
+
+PRODUCT SPECIFICATION
+
+Version 1.0
+
+# **NOVA AI**
+
+**Android Floating Assistant & Visual Search**
+
+Aplikasi asisten AI Android dengan floating overlay, area scanner, Google Lens, Gallery, dan AI Answer Engine.
+
+[Gemini App Android Requirements: Live, Screen Context, Phone Actions - FoneClaw](https://images.openai.com/static-rsc-4/Yo0N8VcTD91A-xZ0kChns81YQpWutDZeJKoFKii6t_V84razJ70Ciav0bvGUMgMpNyOsAefUQqfB_UExgZSl4_l0xKZnOECjd36sYlX_FkZD_jQZtMNqDec-5k_GnwJYgZyPiN1ppM0_vuW5wC9pSxMKTHJmKR8Kb2aRY-w3tDk?purpose=inline)
+
+[foneclaw.ai](https://www.foneclaw.ai/gemini-intelligence-complete-guide.html?utm_source=chatgpt.com)
+
+| Informasi     | Detail                            |
+| ------------- | --------------------------------- |
+| Platform      | Android                           |
+| Nama produk   | NOVA AI                           |
+| Versi PRD     | 1.0                               |
+| Bahasa utama  | Indonesia                         |
+| AI Engine     | OpenAI API                        |
+| Search Engine | Google Search / Google Lens       |
+| Development   | Kotlin + Jetpack Compose          |
+| Prioritas     | Fungsionalitas dan kompatibilitas |
+
+# **1. Product Overview**
+
+NOVA AI adalah aplikasi asisten AI Android yang dapat digunakan melalui floating overlay di atas aplikasi lain.
+
+Tujuan utamanya adalah memungkinkan pengguna melakukan pemindaian pertanyaan dari layar, mencari informasi menggunakan Google, serta mendapatkan jawaban AI tanpa harus berpindah-pindah aplikasi untuk alur pemindaian internal.
+
+NOVA AI memiliki tiga fitur utama:
+
+1. Scan Area: memilih area layar dan memproses pertanyaan.
+2. Google Lens: membuka pengalaman pencarian visual Google Lens.
+3. Gallery: mengambil gambar atau screenshot dari galeri untuk dianalisis.
+
+Hasil pemindaian dan jawaban ditampilkan melalui Floating Answer Panel.
+
+# **2. Product Goals**
+
+## **Tujuan utama**
+
+- Floating assistant dapat dipanggil ketika pengguna membuka aplikasi lain.
+- Floating assistant tetap dapat digunakan saat aplikasi utama sedang Screen Pinning, sejauh diizinkan Android.
+- Pengguna dapat memilih area layar secara manual.
+- Pertanyaan dapat dibaca menggunakan OCR.
+- Sistem dapat mencari informasi melalui Google.
+- AI dapat menghasilkan jawaban berdasarkan hasil pencarian.
+- Hasil jawaban muncul di floating panel.
+- Proses berlangsung cepat dan stabil.
+
+## **Non-goals**
+
+Versi pertama tidak ditujukan untuk:
+
+- Mengendalikan seluruh Android.
+- Mengambil alih aplikasi lain.
+- Melakukan bypass keamanan Android.
+- Melakukan perekaman layar secara diam-diam.
+- Menjamin Google Lens dapat dibuka saat Screen Pinning aktif pada semua perangkat.
+
+# **3. Core User Experience**
+
+## **3.1 Floating Assistant**
+
+[OpenAI’s New AI Browser Is About to Shake the Web: Can It Really Challenge Chrome? | by R. Thompson (PhD) | AI Disruption | Medium](https://images.openai.com/static-rsc-4/PFcUb2JRJPCpIBdvkpHyx01w087DQTvOzrHU7FCahtcSMsBieqs1O2kcUj0B4sHuuvBY-dzwQ7ku3L7Ao9Md1yC5O1scfAps38UIXb2fWB6zEhSswECRRiXbwbToOXefGtkB3ADTkRUd_i2q1HRjmo6ib93--Bm8vjHbR79myp8?purpose=inline)
+
+[medium.com](https://medium.com/ai-disruption/openais-new-ai-browser-is-about-to-shake-the-web-can-it-really-challenge-chrome-d972876d1ba5?utm_source=chatgpt.com)
+
+Floating assistant menjadi pintu masuk utama NOVA AI.
+
+**Functional requirements:**
+
+- Floating bubble muncul di atas aplikasi lain setelah pengguna memberikan izin overlay.
+- Bubble dapat dipindahkan.
+- Bubble dapat diminimalkan.
+- Bubble dapat dibuka dengan satu ketukan.
+- Bubble tidak menghalangi interaksi utama dengan aplikasi di bawahnya.
+- Status NOVA ditampilkan: Active, Scanning, Processing, atau Error.
+
+## **3.2 Floating Menu**
+
+Ketika bubble ditekan, muncul tiga pilihan.
+
+[Gemini va radicalement changer sur Android : voici les premières images de la mise à jour](https://images.openai.com/static-rsc-4/UP04QZSLhenCjWL2WYY6tX1tSUtVTfRQwGq1gyQVlhFJPEnY2d1w0kNjFyeAKxaDJgIarqsl7R1TLVZdkijjJbXNzN49aS_bt1XSUj4Eb8otECJp7jBR_bqMH-I_W8C_pLtMo-4TfltTdj6xZJxrvpeUKZ6166Oex9SxhdOnhLs?purpose=inline)
+
+[01net.com](https://www.01net.com/actualites/gemini-radicalement-changer-android-premieres-images-mise-a-jour.html?utm_source=chatgpt.com)
+
+| Menu        | Fungsi                            |
+| ----------- | --------------------------------- |
+| Scan Area   | Memilih area layar untuk dipindai |
+| Google Lens | Membuka Google Lens jika tersedia |
+| Gallery     | Memilih gambar dari galeri        |
+
+Ketentuan:
+
+- Menu muncul tanpa menutup aplikasi utama.
+- Menu dapat ditutup dengan mengetuk area luar.
+- Setiap menu memiliki loading dan error state.
+- Tidak boleh ada tombol yang hanya bersifat dekoratif.
+
+# **4. Feature Requirements**
+
+## **4.1 Scan Area — Prioritas P0**
+
+Core Feature
+
+Ini adalah fitur terpenting NOVA AI.
+
+[Vollversion: Resize Me! Pro - Download - CHIP](https://images.openai.com/static-rsc-4/2PFVSwkdJ2uGRm78YY-ocHug_KHW_GFj67LtBnYlFYMfEgpNi9KV6E2NtKxWk1lo_6jS7f63KJTbVYffBQrL59cOKstk2boF0iWs0IgTN-D2sw3P3zYLSwE6EXMKjfueMoBY29yKJrhvOZCCyWlcp-KB4BSL5QKfNsxpOjczTsI?purpose=inline)
+
+[chip.de](https://www.chip.de/downloads/Vollversion-Resize-Me-Pro_184992218.html?utm_source=chatgpt.com)
+
+**User flow:**
+
+1. Pengguna membuka aplikasi apa pun.
+2. Pengguna menekan floating NOVA.
+3. Memilih Scan Area.
+4. NOVA memulai atau menggunakan sesi screen capture yang sudah mendapat izin.
+5. Tampilan pemilihan area muncul.
+6. Pengguna menarik kotak seleksi.
+7. Menekan tombol Scan.
+8. NOVA melakukan crop pada area terpilih.
+9. Gambar dikirim ke OCR.
+10. Teks pertanyaan ditampilkan untuk pemeriksaan jika diperlukan.
+11. Pengguna mengonfirmasi pencarian.
+12. Google Search dan OpenAI memproses pertanyaan.
+13. Jawaban ditampilkan pada Floating Answer Panel.
+
+**Persyaratan teknis:**
+
+- Menggunakan Android MediaProjection API.
+- Menggunakan custom selection overlay.
+- Mendukung drag dan resize rectangle.
+- Mendukung berbagai ukuran layar.
+- Memperhitungkan status bar, navigation bar, dan density layar.
+- Crop harus sesuai koordinat layar asli.
+- Gambar tidak boleh terdistorsi.
+- Mendukung teks Bahasa Indonesia dan Inggris.
+- Mengabaikan area kosong.
+- Menangani gambar yang tidak dapat dibaca.
+
+Penting: MediaProjection membutuhkan persetujuan pengguna. Pada Android modern, sesi capture memiliki persyaratan perizinan dan siklus hidup tersendiri. Aplikasi harus dapat memulihkan sesi melalui proses yang diizinkan, bukan mengasumsikan screen capture selalu aktif.
+
+## **4.2 Google Lens — Prioritas P1**
+
+[Google Lens się zmienia – szukanie informacji na zdjęciach](https://images.openai.com/static-rsc-4/NN40kxxOvJk3eVvVRHQ774gxMQsVGWH8q6CD-UUd3VhTbgXGGWHaTIiEl8rtLWsQsHANStLAHuqf16DerUPC42pdZVB57etOvjl311p_cXm8qupTdScwNYI-P7lPXZvLwVguPvPacIuenPj34-ux4iIQxcENO1sIRqqoJHKg95Y?purpose=inline)
+
+[android.com.pl](https://android.com.pl/news/418624-google-lens-obiektyw-wyszukiwanie-zdjecia-galeria/?utm_source=chatgpt.com)
+
+Fungsi:
+
+- Membuka Google Lens melalui integrasi yang tersedia pada perangkat.
+- Mengirim atau memilih gambar untuk pencarian visual jika didukung.
+- Pengguna dapat mencari objek, teks, gambar, dan informasi visual.
+
+Persyaratan:
+
+- Periksa ketersediaan Google Lens.
+- Tangani jika aplikasi Google tidak terpasang.
+- Jangan mengasumsikan ada public API Google Lens untuk menjalankan seluruh alur secara programatis.
+- Jika tidak tersedia, berikan fallback berupa Google Search atau Galeri.
+
+## **4.3 Gallery — Prioritas P1**
+
+[Google Photos cloud content will soon appear in Android's Photo Picker, finally](https://images.openai.com/static-rsc-4/i0-aqmjwMRfj07sZ_Rf8VBuLW_r-ATN33q9jN3D5yIAxzbAM3wgMzMCN7ef-XA0GRjDDEsxSjmd97WC2SfkOhKHbzgqPdcZzIt-vJz1pnan7pCcF53aPa85jdexh0xgKh6LedstMRY84p0YRPLWhpAYKK6JvY1qRCez4t1rwTsk?purpose=inline)
+
+[androidauthority.com](https://www.androidauthority.com/google-photos-in-photo-picker-3395079/?utm_source=chatgpt.com)
+
+Fungsi:
+
+- Memilih gambar dari Galeri.
+- Mendukung screenshot.
+- Mendukung JPG, JPEG, PNG, dan format gambar yang didukung Android.
+- Melakukan OCR pada gambar.
+- Mengirim teks hasil OCR ke AI.
+- Menampilkan jawaban dalam Floating Answer Panel.
+
+Gunakan Android Photo Picker agar tidak memerlukan izin akses seluruh penyimpanan untuk pemilihan foto biasa.
+
+## **4.4 OCR Engine — Prioritas P0**
+
+Teknologi: Google ML Kit Text Recognition.
+
+Kemampuan:
+
+- Mendeteksi teks.
+- Mengambil struktur blok, baris, dan kata.
+- Mempertahankan urutan teks semaksimal mungkin.
+- Mengenali Bahasa Indonesia dan Inggris dengan model yang sesuai.
+- Menghapus noise yang tidak relevan.
+- Menyusun teks menjadi pertanyaan yang dapat dipahami AI.
+
+Contoh:
+
+OCR RESULT
+
+"Apa ibu kota negara Jepang?"
+
+Status OCR
+
+Success
+
+Text confidence
+
+**Evaluated by OCR pipeline**
+
+Catatan: Jangan menggunakan confidence buatan. Jika teks tidak jelas, NOVA harus meminta pengguna melakukan scan ulang.
+
+## **4.5 Google Search Integration — Prioritas P0**
+
+Fungsi:
+
+- Mengambil pertanyaan dari OCR.
+- Membuat query pencarian yang relevan.
+- Mendapatkan hasil pencarian dari layanan yang sah.
+- Mengambil judul, snippet, URL, dan informasi sumber.
+- Mengirim hasil relevan ke AI Answer Engine.
+
+Pilihan implementasi:
+
+- Google Programmable Search Engine / Custom Search JSON API jika akses tersedia dan sesuai kebutuhan.
+- Provider pencarian lain yang memiliki API resmi.
+- Browser Google Search sebagai fallback manual.
+
+Jangan mengandalkan scraping halaman Google Search karena tidak stabil dan dapat melanggar ketentuan layanan.
+
+## **4.6 AI Answer Engine — Prioritas P0**
+
+Menggunakan OpenAI API.
+
+Tugas AI:
+
+- Memahami pertanyaan.
+- Menganalisis hasil pencarian.
+- Menyaring informasi tidak relevan.
+- Menyusun jawaban yang jelas.
+- Menyertakan sumber.
+- Mengakui jika informasi tidak cukup.
+
+Format jawaban:
+
+**NOVA AI Answer**
+
+Completed
+
+**Pertanyaan**
+
+Apa ibu kota negara Jepang?
+
+**Jawaban**
+
+Ibu kota Jepang adalah Tokyo.
+
+**Sumber pencarian**
+
+- Referensi 1
+- Referensi 2
+
+Contoh tampilan hasil, bukan hasil pencarian langsung.
+
+Persyaratan:
+
+- Jawaban singkat ditampilkan terlebih dahulu.
+- Pengguna dapat membuka penjelasan lengkap.
+- Sumber dapat dibuka melalui link.
+- API Key tidak boleh disimpan secara hardcode di APK.
+- Backend harus mengamankan API Key.
+
+# **5. Floating Answer Panel**
+
+[Ai chat & image generate mobile App| UI/UX| Case study :: Behance](https://images.openai.com/static-rsc-4/Z5W_-y4QtF0FIB_PH1kR_DKMD1hQYa-LEMnXLSMWQ44aceSxG-CYn_RluUXCv3Lf-oInB4vf1IK8KVerLntUjCSSwPHAL3ktloxLMN5w6Qrq78WhhVYF45HOaF6liflJL_3-LU5msOb4gJFX8vSgdWpd5hIAIQLGs9TC7KopOnc?purpose=inline)
+
+[behance.net](https://www.behance.net/gallery/242097935/Ai-chat-image-generate-mobile-App-UIUX-Case-study?utm_source=chatgpt.com)
+
+Panel jawaban menjadi tempat menampilkan seluruh hasil proses.
+
+**Elemen UI:**
+
+| Elemen      | Fungsi                            |
+| ----------- | --------------------------------- |
+| Header NOVA | Identitas aplikasi                |
+| Status      | Scanning / Processing / Completed |
+| Question    | Pertanyaan hasil OCR              |
+| Answer      | Jawaban AI                        |
+| Sources     | Referensi Google                  |
+| Copy        | Salin jawaban                     |
+| Retry       | Ulangi pencarian                  |
+| Expand      | Perbesar panel                    |
+| Close       | Tutup panel                       |
+
+Panel harus:
+
+- Bisa dipindahkan.
+- Bisa diminimalkan.
+- Bisa diperbesar.
+- Tidak mengunci interaksi dengan aplikasi utama.
+- Mempertahankan hasil selama sesi berlangsung.
+
+# **6. Screen Pinning Compatibility**
+
+Critical Technical Requirement
+
+Ini adalah persyaratan khusus NOVA AI.
+
+Pengguna ingin NOVA tetap dapat digunakan ketika aplikasi lain berada dalam mode Screen Pinning.
+
+**Target perilaku:**
+
+| Kondisi              | Perilaku                                                   |
+| -------------------- | ---------------------------------------------------------- |
+| Aplikasi biasa       | Floating NOVA tersedia setelah izin diberikan              |
+| Screen Pinning aktif | NOVA berusaha mempertahankan overlay jika diizinkan sistem |
+| Area Scan            | Menggunakan jalur capture yang telah mendapat persetujuan  |
+| Floating Answer      | Menampilkan hasil selama overlay diizinkan                 |
+| Google Lens          | Bisa membutuhkan perpindahan aplikasi                      |
+| Gallery              | Bisa membutuhkan pemanggilan Photo Picker                  |
+
+**Risiko yang harus diuji:**
+
+- Android dapat membatasi perpindahan aplikasi saat Screen Pinning aktif.
+- Overlay dapat diblokir atau dibatasi oleh implementasi OEM.
+- MediaProjection memiliki batasan sesi.
+- Foreground Service memiliki aturan Android yang berbeda berdasarkan versi OS.
+- Aplikasi yang disematkan dapat mengunci navigasi sehingga membuka aplikasi eksternal tidak selalu memungkinkan.
+
+**Fallback wajib:**
+
+Jika Google Lens atau Gallery tidak dapat dibuka karena Screen Pinning, NOVA tetap harus menyediakan jalur Scan Area internal selama izin capture dan overlay tersedia.
+
+Jangan menggunakan Accessibility Service atau mekanisme lain untuk mengakali pembatasan keamanan Screen Pinning.
+
+# **7. Technical Architecture**
+
+## **Technology Stack**
+
+| Layer                | Teknologi             |
+| -------------------- | --------------------- |
+| Language             | Kotlin                |
+| UI                   | Jetpack Compose       |
+| Architecture         | MVVM                  |
+| Dependency Injection | Hilt                  |
+| Async                | Kotlin Coroutines     |
+| Floating             | Android WindowManager |
+| Background           | Foreground Service    |
+| Capture              | MediaProjection       |
+| Image Processing     | Android Bitmap        |
+| OCR                  | Google ML Kit         |
+| Search               | Search API Provider   |
+| AI                   | OpenAI API            |
+| Networking           | Retrofit / OkHttp     |
+| Local Storage        | Room / DataStore      |
+
+## **System Architecture**
+
+\#chatgpt-mermaid-\_r_pp\_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-\_r_pp\_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_pp\_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_pp\_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-\_r_pp\_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_pp\_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-\_r_pp\_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-\_r_pp\_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-\_r_pp\_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-\_r_pp\_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-\_r_pp\_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-\_r_pp\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_pp\_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_pp\_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:16px;}#chatgpt-mermaid-\_r_pp\_ p{margin:0;}#chatgpt-mermaid-\_r_pp\_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_pp\_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_pp\_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_pp\_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-\_r_pp\_ .label text,#chatgpt-mermaid-\_r_pp\_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_pp\_ .node rect,#chatgpt-mermaid-\_r_pp\_ .node circle,#chatgpt-mermaid-\_r_pp\_ .node ellipse,#chatgpt-mermaid-\_r_pp\_ .node polygon,#chatgpt-mermaid-\_r_pp\_ .node path{fill:rgb(9, 23, 44);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-\_r_pp\_ .rough-node .label text,#chatgpt-mermaid-\_r_pp\_ .node .label text,#chatgpt-mermaid-\_r_pp\_ .image-shape .label,#chatgpt-mermaid-\_r_pp\_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-\_r_pp\_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-\_r_pp\_ .rough-node .label,#chatgpt-mermaid-\_r_pp\_ .node .label,#chatgpt-mermaid-\_r_pp\_ .image-shape .label,#chatgpt-mermaid-\_r_pp\_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-\_r_pp\_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-\_r_pp\_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_pp\_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_pp\_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-\_r_pp\_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-\_r_pp\_ .edgeLabel{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_pp\_ .edgeLabel p{background-color:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_pp\_ .edgeLabel rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_pp\_ .labelBkg{background-color:rgba(0, 0, 0, 0.5);}#chatgpt-mermaid-\_r_pp\_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-\_r_pp\_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_pp\_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_pp\_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-\_r_pp\_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_pp\_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-\_r_pp\_ .icon-shape,#chatgpt-mermaid-\_r_pp\_ .image-shape{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_pp\_ .icon-shape p,#chatgpt-mermaid-\_r_pp\_ .image-shape p{background-color:rgb(0, 0, 0);padding:2px;}#chatgpt-mermaid-\_r_pp\_ .icon-shape .label rect,#chatgpt-mermaid-\_r_pp\_ .image-shape .label rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_pp\_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-\_r_pp\_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-\_r_pp\_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].node rect,#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].cluster rect,#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-\_r_pp\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-\_r_pp\_-gradient);stroke-width:1px;}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-\_r_pp\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-\_r_pp\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_pp\_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-\_r_pp\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_pp\_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_pp\_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_pp\_ .node tspan[font-weight="normal"],#chatgpt-mermaid-\_r_pp\_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-\_r_pp\_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-width:1px;}#chatgpt-mermaid-\_r_pp\_ .node rect,#chatgpt-mermaid-\_r_pp\_ .node circle,#chatgpt-mermaid-\_r_pp\_ .node ellipse,#chatgpt-mermaid-\_r_pp\_ .node polygon,#chatgpt-mermaid-\_r_pp\_ .node path{fill:rgb(0, 40, 77);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-\_r_pp\_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-\_r_pp\_ .mermaid-decision .label-container{fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-dasharray:2,2;}#chatgpt-mermaid-\_r_pp\_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-\_r_pp\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_pp\_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,"Segoe UI",Helvetica,"Apple Color Emoji",Arial,sans-serif,"Segoe UI Emoji","Segoe UI Symbol";}Android ApplicationFloating AssistantFloating MenuScan AreaGoogle LensGalleryMediaProjectionImage CropGoogle ML Kit OCRGoogle Visual SearchQuestion ProcessorGoogle Search APISearch ResultsOpenAI Answer EngineFloating Answer Panel
+
+# **8. Project Folder Structure**
+
+Struktur project yang direkomendasikan:
+
+```
+NOVA-AI-ANDROID/
+│
+├── app/
+│   ├── src/main/
+│   │   ├── java/com/nova/ai/
+│   │   │
+│   │   ├── core/
+│   │   │   ├── network/
+│   │   │   ├── permissions/
+│   │   │   ├── utils/
+│   │   │   └── constants/
+│   │   │
+│   │   ├── data/
+│   │   │   ├── api/
+│   │   │   ├── repository/
+│   │   │   ├── database/
+│   │   │   └── models/
+│   │   │
+│   │   ├── domain/
+│   │   │   ├── scanner/
+│   │   │   ├── search/
+│   │   │   └── answer/
+│   │   │
+│   │   ├── service/
+│   │   │   ├── FloatingService.kt
+│   │   │   └── CaptureService.kt
+│   │   │
+│   │   ├── features/
+│   │   │   ├── home/
+│   │   │   ├── floating/
+│   │   │   ├── scan/
+│   │   │   ├── lens/
+│   │   │   ├── gallery/
+│   │   │   └── answer/
+│   │   │
+│   │   └── MainActivity.kt
+│   │
+│   └── AndroidManifest.xml
+│
+├── backend/
+│   ├── api/
+│   ├── services/
+│   ├── search/
+│   ├── openai/
+│   └── config/
+│
+├── docs/
+│   ├── PRD.md
+│   ├── ARCHITECTURE.md
+│   └── TESTING.md
+│
+└── README.md
+```
+
+# **9. Development Roadmap**
+
+Saya membagi pengembangan menjadi delapan fase agar fitur inti dapat diuji sejak awal.
+
+1. **Phase 1 — Android Foundation**
+   - Setup project Kotlin.
+   - Main Activity.
+   - Permission manager.
+   - Setup Jetpack Compose.
+   - Struktur MVVM.
+2. **Phase 2 — Floating Assistant**
+   - Overlay permission.
+   - Floating bubble.
+   - Floating menu.
+   - Drag, minimize, expand.
+   - Lifecycle service.
+3. **Phase 3 — Area Scanner**
+   - MediaProjection.
+   - Screen capture.
+   - Rectangle selection.
+   - Image crop.
+   - Capture lifecycle dan error handling.
+4. **Phase 4 — OCR Engine**
+   - ML Kit integration.
+   - Text recognition.
+   - Question extraction.
+   - OCR correction.
+   - Bahasa Indonesia dan Inggris.
+5. **Phase 5 — Google Integration**
+   - Google Lens launcher.
+   - Gallery picker.
+   - Search API.
+   - Search result parser.
+6. **Phase 6 — AI Answer Engine**
+   - OpenAI API.
+   - Context builder.
+   - Answer generation.
+   - Source references.
+   - Error dan timeout handling.
+7. **Phase 7 — Floating Answer Panel**
+   - Answer card.
+   - Copy.
+   - Retry.
+   - Expand/collapse.
+   - Source links.
+8. **Phase 8 — Compatibility & Release**
+   - Screen Pinning testing.
+   - Android version testing.
+   - OEM compatibility.
+   - Performance optimization.
+   - Security testing.
+   - APK release.
+
+# **10. Acceptance Criteria**
+
+Fitur belum dianggap selesai hanya karena UI sudah muncul.
+
+| Test            | Kriteria lulus                                       |
+| --------------- | ---------------------------------------------------- |
+| Floating bubble | Dapat muncul di atas aplikasi lain setelah izin      |
+| Floating menu   | Semua pilihan berfungsi                              |
+| Area selection  | Rectangle dapat dipindahkan dan diubah ukurannya     |
+| Screen capture  | Gambar sesuai dengan area yang dipilih               |
+| OCR             | Pertanyaan dapat dibaca dengan benar pada sampel uji |
+| Google Search   | Hasil pencarian relevan dan memiliki URL sumber      |
+| OpenAI          | Jawaban sesuai konteks pencarian                     |
+| Answer Panel    | Jawaban tampil tanpa membuka browser                 |
+| Gallery         | Gambar dapat dipilih dan diproses                    |
+| Lens            | Berhasil dibuka jika tersedia dan diizinkan          |
+| Screen Pinning  | Jalur internal diuji pada perangkat target           |
+| Error handling  | Tidak crash ketika izin ditolak atau jaringan gagal  |
+
+## **Target performa**
+
+# **2–6 detik**
+
+**Target waktu proses normal dari scan sampai jawaban**
+
+| Proses     | Target       |
+| ---------- | ------------ |
+| Image crop | 100–300 ms   |
+| OCR        | 300–1.000 ms |
+| Search     | 500–2.000 ms |
+| AI answer  | 1–3 detik    |
+
+Target engineering awal pada kondisi jaringan dan perangkat yang mendukung. Perlu benchmark nyata.
+
+# **11. Security & Privacy**
+
+- Capture hanya setelah izin pengguna.
+- Indikator visual saat screen capture berlangsung.
+- Tidak menyimpan screenshot secara permanen secara default.
+- Gambar hanya dikirim ke layanan yang diperlukan.
+- API Key OpenAI disimpan di backend.
+- Pengguna dapat menghentikan layanan floating.
+- Tidak mengambil isi aplikasi yang dilindungi atau menghindari mekanisme FLAG_SECURE.
+- Tidak memproses layar secara diam-diam.
+
+# **12. Prioritas Pengembangan**
+
+**P0 — Wajib berhasil**
+
+Critical
+
+- Floating Assistant
+- Scan Area
+- MediaProjection
+- OCR
+- Google Search
+- OpenAI Answer
+- Floating Answer Panel
+- Screen Pinning compatibility untuk jalur internal
+
+  **P1 — Fitur tambahan**
+
+  Important
+- Google Lens
+- Gallery
+- Riwayat scan
+- Pengaturan tampilan
+
+  **P2 — Pengembangan lanjutan**
+
+  Optional
+- Voice assistant
+- Multi-language optimization
+- Smart question detection
+- Advanced answer history
+
+# **13. Definition of Done**
+
+NOVA AI versi pertama baru boleh dianggap siap dirilis jika:
+
+1. Floating Assistant berfungsi di perangkat Android target.
+2. Area Scan dapat digunakan dari atas aplikasi lain.
+3. Screen Pinning tidak merusak jalur scan internal pada perangkat yang dinyatakan kompatibel.
+4. OCR membaca pertanyaan dengan benar.
+5. Google Search mengembalikan sumber relevan.
+6. OpenAI memberikan jawaban berdasarkan sumber.
+7. Floating Answer Panel menampilkan hasil.
+8. Google Lens dan Gallery memiliki fallback ketika dibatasi sistem.
+9. Tidak ada crash kritis.
+10. Seluruh izin dan penggunaan data transparan bagi pengguna.
+
+## **Rekomendasi keputusan produk**
+
+Saya menyarankan kita tidak mengembangkan semua fitur sekaligus.
+
+Urutan paling aman dan efektif:
+
+**Floating Bubble → Scan Area → OCR → Google Search → OpenAI → Floating Answer Panel.**
+
+Setelah alur ini terbukti bekerja, baru integrasikan Google Lens dan Gallery.
+
+Dengan demikian, NOVA AI sudah memiliki fungsi inti yang bisa diuji sebelum menghabiskan waktu pada fitur tambahan.
+
+**Dokumen PRD ini menjadi acuan utama pengembangan NOVA AI Android v1.0.**
