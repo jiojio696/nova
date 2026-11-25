@@ -3,8 +3,10 @@ package com.example
 import android.app.Application
 import com.example.data.database.NovaDatabase
 import com.example.data.repository.HistoryRepository
+import com.example.data.repository.LicenseRepository
 import com.example.data.repository.NovaApiRepository
 import com.example.data.repository.SettingsRepository
+import com.example.domain.LicenseManager
 import com.example.domain.NovaSessionController
 import com.example.domain.scanner.OcrEngine
 import com.squareup.moshi.Moshi
@@ -20,6 +22,12 @@ class NovaContainer(application: Application) {
     val settingsRepository: SettingsRepository = SettingsRepository(application)
     val apiRepository: NovaApiRepository = NovaApiRepository(moshi)
     val ocrEngine: OcrEngine = OcrEngine()
+    val licenseRepository: LicenseRepository = LicenseRepository(application)
+    val licenseManager: LicenseManager = LicenseManager(
+        appContext = application,
+        licenseRepository = licenseRepository,
+        settingsRepository = settingsRepository
+    )
 
     val sessionController: NovaSessionController = NovaSessionController(
         ocrEngine = ocrEngine,

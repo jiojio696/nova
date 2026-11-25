@@ -25,17 +25,21 @@ import androidx.core.app.ServiceCompat
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.example.MainActivity
 import com.example.NovaApplication
 import com.example.R
 import com.example.core.permissions.PermissionHelper
 import com.example.data.models.FloatingHubTab
 import com.example.data.models.FloatingPanelMode
+import com.example.data.models.LicenseAccessState
 import com.example.data.models.NovaAssistantStatus
 import com.example.features.floating.AreaSelectionOverlay
 import com.example.features.floating.FloatingAnswerPanelOverlay
 import com.example.features.floating.FloatingBubbleOverlay
 import com.example.features.floating.FloatingMenuOverlay
 import com.example.ui.theme.NovaTheme
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -56,6 +60,10 @@ class NovaFloatingService : Service() {
 
     private val sessionController by lazy {
         (application as NovaApplication).container.sessionController
+    }
+
+    private val licenseManager by lazy {
+        (application as NovaApplication).container.licenseManager
     }
 
     private var lifecycleOwner: OverlayLifecycleOwner? = null
@@ -105,6 +113,14 @@ class NovaFloatingService : Service() {
     }
 
     private fun ensureRunning() {
+        val signedInUser = Firebase.auth.currentUser
+        if (signedInUser == null) {
+            sessionController.setFloatingServiceRunning(false)
+            startActivity(MainActivity.createLicenseGateIntent(this, "Masuk dengan Google dan aktifkan License Key terlebih dahulu."))
+            stopSelf()
+            return
+        }
+
         if (!PermissionHelper.hasOverlayPermission(this)) {
             sessionController.setFloatingServiceRunning(false)
             Toast.makeText(
@@ -116,14 +132,29 @@ class NovaFloatingService : Service() {
             return
         }
 
+        licenseManager.startObservingForUser(signedInUser.uid)
         startOverlayForeground()
 
         if (lifecycleOwner == null) {
             lifecycleOwner = OverlayLifecycleOwner().apply { onResume() }
             attachBubbleView()
             observeSessionState()
+            observeLicenseAccess()
         }
         sessionController.setFloatingServiceRunning(true)
+    }
+
+    private fun observeLicenseAccess() {
+        serviceScope.launch {
+            licenseManager.accessState.collectLatest { access ->
+                if (access is LicenseAccessState.Unlicensed) {
+                    val reason = access.reason ?: "Lisensi tidak aktif. Silakan masukkan License Key yang valid."
+                    Toast.makeText(this@NovaFloatingService, reason, Toast.LENGTH_LONG).show()
+                    startActivity(MainActivity.createLicenseGateIntent(this@NovaFloatingService, reason))
+                    stopAssistantCompletely()
+                }
+            }
+        }
     }
 
     private fun startOverlayForeground() {
@@ -336,6 +367,8 @@ class NovaFloatingService : Service() {
                     val state by sessionController.state.collectAsState()
                     val settings by sessionController.settings.collectAsState()
                     val history by sessionController.history.collectAsState()
+                    val licenseAccess by licenseManager.accessState.collectAsState()
+                    val activeLicense = (licenseAccess as? LicenseAccessState.Licensed)?.license
 
                     FloatingAnswerPanelOverlay(
                         sessionState = state,
@@ -343,6 +376,7 @@ class NovaFloatingService : Service() {
                         history = history,
                         apiConfig = sessionController.getApiConfigStatus(),
                         isScreenPinned = PermissionHelper.isScreenPinningActive(this@NovaFloatingService),
+                        activeLicense = activeLicense,
                         onSelectTab = { sessionController.selectHubTab(it) },
                         onHistorySearchFocusChanged = { sessionController.setHistorySearchFocused(it) },
                         onDragPanel = { dx, dy ->
@@ -386,7 +420,16 @@ class NovaFloatingService : Service() {
                         onLanguageChange = { sessionController.updateAnswerLanguage(it) },
                         onSaveHistoryChange = { sessionController.updateSaveHistoryLocally(it) },
                         onActivateCaptureSession = { handleActivateCaptureOnly() },
-                        onStopCaptureSession = { MediaProjectionCaptureService.stopSession(this@NovaFloatingService) }
+                        onStopCaptureSession = { MediaProjectionCaptureService.stopSession(this@NovaFloatingService) },
+                        onChangeLicenseKey = {
+                            serviceScope.launch {
+                                licenseManager.clearSavedKey("Masukkan License Key baru untuk perangkat ini.")
+                            }
+                        },
+                        onOpenHiddenAdminGate = {
+                            sessionController.closePanel()
+                            startActivity(MainActivity.createAdminPinGateIntent(this@NovaFloatingService))
+                        }
                     )
                 }
             }

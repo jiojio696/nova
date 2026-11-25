@@ -87,6 +87,7 @@ import com.example.ui.theme.ObsidianBorder
 import com.example.ui.theme.ObsidianCard
 import com.example.ui.theme.ObsidianElevated
 import com.example.ui.theme.ObsidianSurface
+import com.example.data.models.LicenseKeyDoc
 import com.example.ui.theme.ObsidianVoid
 import kotlinx.coroutines.delay
 
@@ -97,6 +98,7 @@ fun FloatingAnswerPanelOverlay(
     history: List<NovaAnswerResult>,
     apiConfig: ApiConfigStatus,
     isScreenPinned: Boolean,
+    activeLicense: LicenseKeyDoc?,
     onSelectTab: (FloatingHubTab) -> Unit,
     onHistorySearchFocusChanged: (Boolean) -> Unit,
     onDragPanel: (dx: Float, dy: Float) -> Unit,
@@ -121,7 +123,9 @@ fun FloatingAnswerPanelOverlay(
     onLanguageChange: (AnswerLanguage) -> Unit,
     onSaveHistoryChange: (Boolean) -> Unit,
     onActivateCaptureSession: () -> Unit,
-    onStopCaptureSession: () -> Unit
+    onStopCaptureSession: () -> Unit,
+    onChangeLicenseKey: () -> Unit,
+    onOpenHiddenAdminGate: () -> Unit
 ) {
     val isExpanded = sessionState.panelMode == FloatingPanelMode.EXPANDED
     val maxBodyHeight = if (isExpanded) 460.dp else 285.dp
@@ -328,6 +332,7 @@ fun FloatingAnswerPanelOverlay(
                             isCaptureSessionReady = sessionState.isCaptureSessionReady,
                             isScreenPinned = isScreenPinned,
                             apiConfig = apiConfig,
+                            activeLicense = activeLicense,
                             onBubbleOpacityChange = onBubbleOpacityChange,
                             onBubbleSizeChange = onBubbleSizeChange,
                             onConfirmOcrChange = onConfirmOcrSettingChange,
@@ -335,7 +340,9 @@ fun FloatingAnswerPanelOverlay(
                             onLanguageChange = onLanguageChange,
                             onSaveHistoryChange = onSaveHistoryChange,
                             onActivateCaptureSession = onActivateCaptureSession,
-                            onStopCaptureSession = onStopCaptureSession
+                            onStopCaptureSession = onStopCaptureSession,
+                            onChangeLicenseKey = onChangeLicenseKey,
+                            onOpenHiddenAdminGate = onOpenHiddenAdminGate
                         )
                     }
                 }

@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "LicenseKey": {
+      "title": "LicenseKey",
+      "description": "Single-device license key with activation-triggered daily expiration. Document ID is the normalized uppercase key code.",
+      "type": "object",
+      "properties": {
+        "durationDays": {
+          "type": "integer",
+          "description": "Number of days the license remains valid starting from first activation (1 to 3650)."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "revoked"],
+          "description": "Administrative status of the license key."
+        },
+        "boundDeviceId": {
+          "type": "string",
+          "description": "Optional hashed unique Android device identifier bound to this key. Null or absent when unused or reset."
+        },
+        "boundDeviceModel": {
+          "type": "string",
+          "description": "Optional human-readable device model string (e.g., Pixel 8) for admin reference."
+        },
+        "boundUserId": {
+          "type": "string",
+          "description": "Optional Firebase Auth UID of the user who bound this key."
+        },
+        "activatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional server timestamp set via FieldValue.serverTimestamp() when first activated."
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Optional expiration timestamp calculated upon first activation and adjustable by admin."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() upon creation (immutable)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on every write."
+        }
+      },
+      "required": ["durationDays", "status", "createdAt", "updatedAt"]
+    },
+    "AdminKeyNote": {
+      "title": "AdminKeyNote",
+      "description": "Admin-only buyer metadata isolated from licenseKeys for strict PII protection.",
+      "type": "object",
+      "properties": {
+        "buyerNote": {
+          "type": "string",
+          "description": "Buyer name or administrative note (0 to 200 characters)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() upon creation (immutable)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on every write."
+        }
+      },
+      "required": ["buyerNote", "createdAt", "updatedAt"]
+    },
+    "AdminSecurityConfig": {
+      "title": "AdminSecurityConfig",
+      "description": "Admin-only salted SHA-256 hash of the secret Admin Panel PIN.",
+      "type": "object",
+      "properties": {
+        "pinSalt": {
+          "type": "string",
+          "description": "Random hex salt (16 to 64 characters)."
+        },
+        "pinHash": {
+          "type": "string",
+          "description": "Hex-encoded SHA-256 digest of salt and admin PIN (64 characters)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() upon creation (immutable)."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on every write."
+        }
+      },
+      "required": ["pinSalt", "pinHash", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/licenseKeys/{keyCode}": {
+      "schema": { "$ref": "#/entities/LicenseKey" },
+      "description": "Single-device license keys indexed by uppercase key code."
+    },
+    "/adminKeyNotes/{keyCode}": {
+      "schema": { "$ref": "#/entities/AdminKeyNote" },
+      "description": "Admin-only buyer notes paired 1:1 with licenseKeys by key code."
+    },
+    "/adminConfig/{configId}": {
+      "schema": { "$ref": "#/entities/AdminSecurityConfig" },
+      "description": "Admin-only security configuration document (configId = 'security')."
+    }
+  }
+}

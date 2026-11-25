@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.PushPin
@@ -49,9 +51,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.data.models.AdminLicenseItem
+import com.example.data.models.LicenseKeyDoc
+import com.example.ui.theme.JetBrainsMonoFontFamily
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -497,6 +504,7 @@ fun FloatingSettingsTab(
     isCaptureSessionReady: Boolean,
     isScreenPinned: Boolean,
     apiConfig: ApiConfigStatus,
+    activeLicense: LicenseKeyDoc?,
     onBubbleOpacityChange: (Float) -> Unit,
     onBubbleSizeChange: (Int) -> Unit,
     onConfirmOcrChange: (Boolean) -> Unit,
@@ -504,11 +512,85 @@ fun FloatingSettingsTab(
     onLanguageChange: (AnswerLanguage) -> Unit,
     onSaveHistoryChange: (Boolean) -> Unit,
     onActivateCaptureSession: () -> Unit,
-    onStopCaptureSession: () -> Unit
+    onStopCaptureSession: () -> Unit,
+    onChangeLicenseKey: () -> Unit,
+    onOpenHiddenAdminGate: () -> Unit
 ) {
     var showPinningGuide by remember { mutableStateOf(false) }
+    var secretTapCount by remember { mutableIntStateOf(0) }
+    var lastTapTimestamp by remember { mutableLongStateOf(0L) }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // 0. Active License Status Card (with hidden 5-tap trigger on header for Admin Panel)
+        if (activeLicense != null) {
+            val remainingText = remember(activeLicense) {
+                AdminLicenseItem(activeLicense).formatRemainingLabel()
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(ObsidianCard)
+                    .border(1.dp, NovaStatusCompleted.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            val now = System.currentTimeMillis()
+                            secretTapCount = if (now - lastTapTimestamp > 2_000L) 1 else secretTapCount + 1
+                            lastTapTimestamp = now
+                            if (secretTapCount >= 5) {
+                                secretTapCount = 0
+                                onOpenHiddenAdminGate()
+                            }
+                        }
+                        .testTag("floating_license_header"),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Key,
+                        contentDescription = null,
+                        tint = NovaStatusCompleted,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "LISENSI PERANGKAT TUNGGAL",
+                            style = MaterialTheme.typography.labelSmall.copy(color = NovaStatusCompleted)
+                        )
+                        Text(
+                            text = activeLicense.keyCode,
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontFamily = JetBrainsMonoFontFamily,
+                                color = Color.White
+                            )
+                        )
+                    }
+                }
+                Text(
+                    text = remainingText,
+                    style = MaterialTheme.typography.bodySmall.copy(color = Color(0xFFCBD5E1))
+                )
+                OutlinedButton(
+                    onClick = onChangeLicenseKey,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .testTag("floating_settings_change_key"),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Keluar / Ganti License Key", color = Color(0xFFCBD5E1), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+
         // 1. Capture Session & Screen Pinning Control
         Column(
             modifier = Modifier
@@ -646,13 +728,19 @@ fun FloatingSettingsTab(
                 Slider(
                     value = settings.bubbleOpacity,
                     onValueChange = onBubbleOpacityChange,
-                    valueRange = 0.45f..1.0f,
+                    valueRange = 0.0f..1.0f,
                     colors = SliderDefaults.colors(
                         thumbColor = CyanPulse,
                         activeTrackColor = CyanPulse
                     ),
                     modifier = Modifier.testTag("floating_settings_opacity")
                 )
+                if (settings.bubbleOpacity <= 0.05f) {
+                    Text(
+                        text = "Mode transparan penuh: bubble tetap bisa diketuk/digeser di posisi terakhirnya, atau buka Hub lewat notifikasi.",
+                        style = MaterialTheme.typography.labelSmall.copy(color = Color(0xFF94A3B8))
+                    )
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

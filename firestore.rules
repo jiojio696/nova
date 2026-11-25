@@ -1,0 +1,214 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Reusable Security Primitives ---
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Verified bootstrapped admin (zero extra DB reads; email_verified strictly required)
+    function isAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == 'susimelani2108@gmail.com';
+    }
+
+    function isValidKeyCode(id) {
+      return id is string &&
+        id.size() >= 4 &&
+        id.size() <= 32 &&
+        id.matches('^[A-Z0-9\\-]+$');
+    }
+
+    function isValidDeviceId(val) {
+      return val is string &&
+        val.size() >= 8 &&
+        val.size() <= 128 &&
+        val.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Standalone Entity Validation Helpers ---
+
+    function isValidLicenseKey(data) {
+      return data.durationDays is int &&
+        data.durationDays >= 1 &&
+        data.durationDays <= 3650 &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        (data.status == 'active' || data.status == 'revoked') &&
+        (!('boundDeviceId' in data) || data.boundDeviceId == null || isValidDeviceId(data.boundDeviceId)) &&
+        (!('boundDeviceModel' in data) || data.boundDeviceModel == null || (data.boundDeviceModel is string && data.boundDeviceModel.size() >= 1 && data.boundDeviceModel.size() <= 100)) &&
+        (!('boundUserId' in data) || data.boundUserId == null || (data.boundUserId is string && data.boundUserId.size() >= 1 && data.boundUserId.size() <= 128)) &&
+        (!('activatedAt' in data) || data.activatedAt == null || (data.activatedAt is timestamp && data.activatedAt <= request.time)) &&
+        (!('expiresAt' in data) || data.expiresAt == null || data.expiresAt is timestamp) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAdminKeyNote(data) {
+      return data.buyerNote is string &&
+        data.buyerNote.size() <= 200 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAdminSecurityConfig(data) {
+      return data.pinSalt is string &&
+        data.pinSalt.size() >= 16 &&
+        data.pinSalt.size() <= 64 &&
+        data.pinSalt.matches('^[a-fA-F0-9]+$') &&
+        data.pinHash is string &&
+        data.pinHash.size() == 64 &&
+        data.pinHash.matches('^[a-fA-F0-9]+$') &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // --- Collection: /licenseKeys/{keyCode} ---
+
+    match /licenseKeys/{keyCode} {
+      // Signed-in users may only fetch a specific key by exact ID (no PII stored here);
+      // listing all keys is strictly restricted to verified Admin.
+      allow get: if isSignedIn() && isValidKeyCode(keyCode);
+      allow list: if isAdmin();
+
+      allow create: if isAdmin() &&
+        isValidKeyCode(keyCode) &&
+        incoming().keys().hasAll(['durationDays', 'status', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly([
+          'durationDays', 'status', 'boundDeviceId', 'boundDeviceModel',
+          'boundUserId', 'activatedAt', 'expiresAt', 'createdAt', 'updatedAt'
+        ]) &&
+        incoming().createdAt is timestamp &&
+        incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp &&
+        incoming().updatedAt <= request.time &&
+        isValidLicenseKey(incoming());
+
+      allow update: if isSignedIn() &&
+        isValidKeyCode(keyCode) &&
+        isValidLicenseKey(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt is timestamp &&
+        incoming().updatedAt <= request.time &&
+        (
+          // Tier 1: Verified Admin can modify all mutable license attributes
+          (
+            isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'durationDays', 'status', 'boundDeviceId', 'boundDeviceModel',
+              'boundUserId', 'activatedAt', 'expiresAt', 'updatedAt'
+            ])
+          ) ||
+          // Tier 2 Action A: First-time activation & device binding (unbound, never activated, active key)
+          (
+            existing().status == 'active' &&
+            (!('boundDeviceId' in existing()) || existing().boundDeviceId == null) &&
+            (!('activatedAt' in existing()) || existing().activatedAt == null) &&
+            incoming().status == existing().status &&
+            incoming().durationDays == existing().durationDays &&
+            incoming().boundUserId == request.auth.uid &&
+            isValidDeviceId(incoming().boundDeviceId) &&
+            incoming().activatedAt is timestamp &&
+            incoming().activatedAt <= request.time &&
+            incoming().expiresAt is timestamp &&
+            incoming().expiresAt <= request.time + duration.value(existing().durationDays * 86400 + 300, 's') &&
+            incoming().expiresAt >= request.time + duration.value(existing().durationDays * 86400 - 300, 's') &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'boundDeviceId', 'boundDeviceModel', 'boundUserId', 'activatedAt', 'expiresAt', 'updatedAt'
+            ])
+          ) ||
+          // Tier 2 Action B: Re-bind new device after Admin Reset Device (preserves original activatedAt & expiresAt)
+          (
+            existing().status == 'active' &&
+            (!('boundDeviceId' in existing()) || existing().boundDeviceId == null) &&
+            ('activatedAt' in existing()) && existing().activatedAt is timestamp &&
+            ('expiresAt' in existing()) && existing().expiresAt is timestamp &&
+            existing().expiresAt > request.time &&
+            incoming().status == existing().status &&
+            incoming().durationDays == existing().durationDays &&
+            incoming().activatedAt == existing().activatedAt &&
+            incoming().expiresAt == existing().expiresAt &&
+            incoming().boundUserId == request.auth.uid &&
+            isValidDeviceId(incoming().boundDeviceId) &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'boundDeviceId', 'boundDeviceModel', 'boundUserId', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isAdmin() && isValidKeyCode(keyCode);
+    }
+
+    // --- Collection: /adminKeyNotes/{keyCode} (Strict PII isolation — Admin Only) ---
+
+    match /adminKeyNotes/{keyCode} {
+      allow get: if isAdmin() && isValidKeyCode(keyCode);
+      allow list: if isAdmin();
+
+      allow create: if isAdmin() &&
+        isValidKeyCode(keyCode) &&
+        incoming().keys().hasAll(['buyerNote', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['buyerNote', 'createdAt', 'updatedAt']) &&
+        incoming().createdAt is timestamp &&
+        incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp &&
+        incoming().updatedAt <= request.time &&
+        isValidAdminKeyNote(incoming());
+
+      allow update: if isAdmin() &&
+        isValidKeyCode(keyCode) &&
+        isValidAdminKeyNote(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt is timestamp &&
+        incoming().updatedAt <= request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['buyerNote', 'updatedAt']);
+
+      allow delete: if isAdmin() && isValidKeyCode(keyCode);
+    }
+
+    // --- Collection: /adminConfig/{configId} (Admin-only PIN hash configuration) ---
+
+    match /adminConfig/{configId} {
+      allow get: if isAdmin() && configId == 'security';
+      allow list: if false;
+
+      allow create: if isAdmin() &&
+        configId == 'security' &&
+        incoming().keys().hasAll(['pinSalt', 'pinHash', 'createdAt', 'updatedAt']) &&
+        incoming().keys().hasOnly(['pinSalt', 'pinHash', 'createdAt', 'updatedAt']) &&
+        incoming().createdAt is timestamp &&
+        incoming().createdAt <= request.time &&
+        incoming().updatedAt is timestamp &&
+        incoming().updatedAt <= request.time &&
+        isValidAdminSecurityConfig(incoming());
+
+      allow update: if isAdmin() &&
+        configId == 'security' &&
+        isValidAdminSecurityConfig(incoming()) &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt is timestamp &&
+        incoming().updatedAt <= request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['pinSalt', 'pinHash', 'updatedAt']);
+
+      allow delete: if false;
+    }
+  }
+}
